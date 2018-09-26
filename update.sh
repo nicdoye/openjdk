@@ -92,7 +92,7 @@ EOD
 			fi
 
 		if [ -e "$dir/Dockerfile" ]; then
-			travisEnv='\n  - VERSION='"$javaVersion"' VARIANT='"$javaVendor-$javaType $travisEnv"
+			travisEnv='\n  - VERSION='"$javaVersion"' VENDOR='"$javaVendor"' VARIANT='"$javaType $travisEnv"
 		fi
 		done
 	done

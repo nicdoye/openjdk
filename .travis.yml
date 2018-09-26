@@ -2,25 +2,25 @@ language: bash
 services: docker
 
 env:
-  - VERSION=11 VARIANT=openjdk-jdk 
-  - VERSION=11 VARIANT=oracle-jdk 
-  - VERSION=8 VARIANT=oracle-serverjre 
+  - VERSION=11 VENDOR=openjdk VARIANT=jdk 
+  - VERSION=11 VENDOR=oracle VARIANT=jdk 
+  - VERSION=8 VENDOR=oracle VARIANT=serverjre 
 
 install:
   - git clone https://github.com/docker-library/official-images.git ~/official-images
 
 before_script:
   - env | sort
-  - cd "$VERSION"
-  - imageBase="alfresco-base-java:$VERSION"
-  - imageSuffix="${VARIANT:+-$VARIANT}"
+  - docker login -u="${QUAY_USERNAME}" -p="${QUAY_PASSWORD}" quay.io
+  - cd "${VERSION}/${VENDOR}/${VARIANT}"
+  - image="alfresco-base-java:${VERSION}-${VENDOR}-${VARIANT}"
 
 script:
   - |
     (
       set -Eeuo pipefail
       set -x
-      travis_retry docker build -t "$imageBase-$imageSuffix" "$(echo $VARIANT| gtr '-' '/')"
+      travis_retry docker build -t "$image" .
     )
 
 after_script:
