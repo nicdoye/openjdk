@@ -12,13 +12,13 @@ LABEL name="Alfresco Base Java" \
     build-date="unset"
 
 RUN yum -y update \
-    yum-utils-1.1.31-46.el7_5 \
-    yum-plugin-ovl-1.1.31-46.el7_5 \
-    yum-plugin-fastestmirror-1.1.31-46.el7_5 \
-    bind-license-9.9.4-61.el7_5.1 \
-    python-2.7.5-69.el7_5 \
-    gnupg2-2.0.22-5.el7_5 && \
-    yum clean all
+		yum-utils-1.1.31-46.el7_5 \
+		yum-plugin-ovl-1.1.31-46.el7_5 \
+		yum-plugin-fastestmirror-1.1.31-46.el7_5 \
+		bind-license-9.9.4-61.el7_5.1 \
+		python-2.7.5-69.el7_5 \
+		gnupg2-2.0.22-5.el7_5 && \
+		yum clean all
 
 # Set the locale
 ENV LANG en_US.UTF-8
@@ -32,11 +32,11 @@ ENV JAVA_PKG="$JAVA_PKG"
 ADD $JAVA_PKG /usr/java/
 
 RUN export JAVA_DIR=$(ls -1 -d /usr/java/*) && \
-    ln -s $JAVA_DIR /usr/java/latest && \
-    ln -s $JAVA_DIR /usr/java/default && \
-    alternatives --install /usr/bin/java java $JAVA_DIR/bin/java 20000 && \
-    alternatives --install /usr/bin/javac javac $JAVA_DIR/bin/javac 20000 && \
-    alternatives --install /usr/bin/jar jar $JAVA_DIR/bin/jar 20000
+		ln -s $JAVA_DIR /usr/java/latest && \
+		ln -s $JAVA_DIR /usr/java/default && \
+		alternatives --install /usr/bin/java java $JAVA_DIR/bin/java 20000 && \
+		alternatives --install /usr/bin/javac javac $JAVA_DIR/bin/javac 20000 && \
+		alternatives --install /usr/bin/jar jar $JAVA_DIR/bin/jar 20000
 
 # https://docs.oracle.com/javase/10/tools/jshell.htm
 # https://en.wikipedia.org/wiki/JShell
