@@ -25,6 +25,10 @@ template-generated-warning() {
 
 		FROM $from
 
+		LABEL name="Alfresco Base Java" \\
+    vendor="Alfresco" \\
+    license="Various" \\
+    build-date="unset"
 	EOD
 }
 
@@ -34,33 +38,28 @@ for javaVersion in "${versions[@]}"; do
 		dir="$javaVersion/$javaType"
 
 		suite="${suites[$javaVersion]:-}"
-		if [ -n "$suite" ]; then
+		#if [ -n "$suite" ]; then
+		if [ 1 = 1 ]; then 
 			addSuite="${addSuites[$javaVersion]:-}"
 
-			needCaHack=
-			if [ "$javaVersion" -ge 8 -a "$suite" != 'sid' ]; then
-				# "20140324" is broken (jessie), but "20160321" is fixed (sid)
-				needCaHack=1
-			fi
-
 			# FIXME
-			debianPackage="openjdk-$javaVersion-$javaType"
-			debSuite="${addSuite:-$suite}"
-			debian-latest-version "$debianPackage" "$debSuite" > /dev/null # prime the cache
-			debianVersion="$(debian-latest-version "$debianPackage" "$debSuite")"
-			fullVersion="${debianVersion%%-*}"
-			fullVersion="${fullVersion#*:}"
+			#debianPackage="openjdk-$javaVersion-$javaType"
+			#debSuite="${addSuite:-$suite}"
+			#debian-latest-version "$debianPackage" "$debSuite" > /dev/null # prime the cache
+			#debianVersion="$(debian-latest-version "$debianPackage" "$debSuite")"
+			#fullVersion="${debianVersion%%-*}"
+			#fullVersion="${fullVersion#*:}"
 
 			tilde='~'
 			case "$javaVersion" in
 				11)
 					# update Debian's "11~8" to "11-ea+8" (matching http://jdk.java.net/11/)
-					fullVersion="${fullVersion//$javaVersion$tilde/$javaVersion-ea+}"
+					#fullVersion="${fullVersion//$javaVersion$tilde/$javaVersion-ea+}"
 					;;
 			esac
-			fullVersion="${fullVersion//$tilde/-}"
+			#fullVersion="${fullVersion//$tilde/-}"
 
-			echo "$javaVersion-$javaType: $fullVersion (debian $debianVersion)"
+			#echo "$javaVersion-$javaType: $fullVersion (debian $debianVersion)"
 
 			template-generated-warning "centos:7.5.1804" "$javaVersion" > "$dir/Dockerfile"
 
@@ -93,31 +92,21 @@ EOD
 	
 			EOD
 
-			template-java-home-script >> "$dir/Dockerfile"
-
-
+# ENV JAVA_PKG=FIXME #"\$JAVA_PKG"
 
 			cat >> "$dir/Dockerfile" <<EOD
 # This used to be serverjre-*.tar.gz (and not an ARG)
 # now it will be serverjre-8u181-bin.tar.gz / serverjre-11.0.0-bin.tar.gz
 ENV JAVA_PKG="\$JAVA_PKG"
-ADD $JAVA_PKG /usr/java/
+ADD \$JAVA_PKG /usr/java/
 
-RUN export JAVA_DIR=$(ls -1 -d /usr/java/*) && \\
-    ln -s $JAVA_DIR /usr/java/latest && \\
-    ln -s $JAVA_DIR /usr/java/default && \\
-    alternatives --install /usr/bin/java java $JAVA_DIR/bin/java 20000 && \\
-    alternatives --install /usr/bin/javac javac $JAVA_DIR/bin/javac 20000 && \\
-    alternatives --install /usr/bin/jar jar $JAVA_DIR/bin/jar 20000
+RUN export JAVA_DIR=\$(ls -1 -d /usr/java/*) && \\
+    ln -s \$JAVA_DIR /usr/java/latest && \\
+    ln -s \$JAVA_DIR /usr/java/default && \\
+    alternatives --install /usr/bin/java java \$JAVA_DIR/bin/java 20000 && \\
+    alternatives --install /usr/bin/javac javac \$JAVA_DIR/bin/javac 20000 && \\
+    alternatives --install /usr/bin/jar jar \$JAVA_DIR/bin/jar 20000
 EOD
-
-			if [ "$needCaHack" ]; then
-				cat >> "$dir/Dockerfile" <<-EOD
-
-				# see CA_CERTIFICATES_JAVA_VERSION notes above
-				RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
-				EOD
-			fi
 
 			if [ "$javaType" = 'jdk' ] && [ "$javaVersion" -ge 10 ]; then
 				cat >> "$dir/Dockerfile" <<-'EOD'
@@ -127,8 +116,6 @@ EOD
 					CMD ["jshell"]
 				EOD
 			fi
-
-			template-contribute-footer >> "$dir/Dockerfile"
 		fi
 	done
 

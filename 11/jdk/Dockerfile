@@ -4,70 +4,40 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:sid-scm
+FROM centos:7.5.1804
 
-# A few reasons for installing distribution-provided OpenJDK:
-#
-#  1. Oracle.  Licensing prevents us from redistributing the official JDK.
-#
-#  2. Compiling OpenJDK also requires the JDK to be installed, and it gets
-#     really hairy.
-#
-#     For some sample build times, see Debian's buildd logs:
-#       https://buildd.debian.org/status/logs.php?pkg=openjdk-11
+LABEL name="Alfresco Base Java" \
+    vendor="Alfresco" \
+    license="Various" \
+    build-date="unset"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		bzip2 \
-		unzip \
-		xz-utils \
-	&& rm -rf /var/lib/apt/lists/*
+RUN yum -y update \
+    yum-utils-1.1.31-46.el7_5 \
+    yum-plugin-ovl-1.1.31-46.el7_5 \
+    yum-plugin-fastestmirror-1.1.31-46.el7_5 \
+    bind-license-9.9.4-61.el7_5.1 \
+    python-2.7.5-69.el7_5 \
+    gnupg2-2.0.22-5.el7_5 && \
+    yum clean all
 
-# Default to UTF-8 file.encoding
-ENV LANG C.UTF-8
+# Set the locale
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+ENV JAVA_HOME=/usr/java/default
 
-# add a simple script that can auto-detect the appropriate JAVA_HOME value
-# based on whether the JDK or only the JRE is installed
-RUN { \
-		echo '#!/bin/sh'; \
-		echo 'set -e'; \
-		echo; \
-		echo 'dirname "$(dirname "$(readlink -f "$(which javac || which java)")")"'; \
-	} > /usr/local/bin/docker-java-home \
-	&& chmod +x /usr/local/bin/docker-java-home
+# This used to be serverjre-*.tar.gz (and not an ARG)
+# now it will be serverjre-8u181-bin.tar.gz / serverjre-11.0.0-bin.tar.gz
+ENV JAVA_PKG="$JAVA_PKG"
+ADD $JAVA_PKG /usr/java/
 
-# do some fancy footwork to create a JAVA_HOME that's cross-architecture-safe
-RUN ln -svT "/usr/lib/jvm/java-11-openjdk-$(dpkg --print-architecture)" /docker-java-home
-ENV JAVA_HOME /docker-java-home
-
-ENV JAVA_VERSION 11-ea+28
-ENV JAVA_DEBIAN_VERSION 11~28-1
-
-RUN set -ex; \
-	\
-# deal with slim variants not having man page directories (which causes "update-alternatives" to fail)
-	if [ ! -d /usr/share/man/man1 ]; then \
-		mkdir -p /usr/share/man/man1; \
-	fi; \
-	\
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		openjdk-11-jdk="$JAVA_DEBIAN_VERSION" \
-	; \
-	rm -rf /var/lib/apt/lists/*; \
-	\
-# verify that "docker-java-home" returns what we expect
-	[ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
-	\
-# update-alternatives so that future installs of other OpenJDK versions don't change /usr/bin/java
-	update-alternatives --get-selections | awk -v home="$(readlink -f "$JAVA_HOME")" 'index($3, home) == 1 { $2 = "manual"; print | "update-alternatives --set-selections" }'; \
-# ... and verify that it actually worked for one of the alternatives we care about
-	update-alternatives --query java | grep -q 'Status: manual'
+RUN export JAVA_DIR=$(ls -1 -d /usr/java/*) && \
+    ln -s $JAVA_DIR /usr/java/latest && \
+    ln -s $JAVA_DIR /usr/java/default && \
+    alternatives --install /usr/bin/java java $JAVA_DIR/bin/java 20000 && \
+    alternatives --install /usr/bin/javac javac $JAVA_DIR/bin/javac 20000 && \
+    alternatives --install /usr/bin/jar jar $JAVA_DIR/bin/jar 20000
 
 # https://docs.oracle.com/javase/10/tools/jshell.htm
 # https://en.wikipedia.org/wiki/JShell
 CMD ["jshell"]
-
-# If you're reading this and have any feedback on how this image could be
-# improved, please open an issue or a pull request so we can discuss it!
-#
-#   https://github.com/docker-library/openjdk/issues
